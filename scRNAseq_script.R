@@ -141,15 +141,36 @@ grep("", BM_sig$feature)
 
 BM_sig <- BM_sig %>% pull(ensgene)
 
+TEFF_BM_sig <- read_csv(file = file.path(dirPath, "TEFF_BM_signature.csv")) %>%
+  dplyr::inner_join(., grcm38, by = c("feature" = "symbol")) %>%
+  dplyr::select(feature, ensgene) %>%
+  dplyr::filter(ensgene %in% rownames(seurat))
+
+TEFF_BM_symbol <- TEFF_BM_sig$feature
+TEFF_BM_sig <- TEFF_BM_sig %>% pull(ensgene)
+
 rownames(seurat@assays$RNA) %>% head(10)
 seurat <- seurat %>% AddModuleScore(., 
-                                    features = list(BM_sig),
-                                    name = "BM")
+                                    features = list(TEFF_BM_sig),
+                                    name = "TEFF_BM")
 seurat
-FeaturePlot(seurat, features = "BM1") +
+FeaturePlot(seurat, features = "TEFF_BM1") +
   scale_colour_gradientn(colours = rev(brewer.pal(n = 9, name = "RdBu")),  
-                         breaks=c(-0.2, 0.4), label = c("-0.2", "Maximum"))
+                         breaks=c(-0.2, 0.3), label = c("-0.2", "Maximum"))
 
 abILTCK <- read_csv(file = file.path(dirPath, "abILTCK_signature.csv"))
 
-BM_symbol %>% as_tibble() %>% rename(., symbol = value) %>% inner_join(., abILTCK, by = c("symbol" = "symbol"))
+common <- TEFF_BM_symbol %>% as_tibble() %>% rename(., symbol = value) %>% inner_join(., abILTCK, by = c("symbol" = "symbol"))
+common_sig <- inner_join(TEFF_BM_sig, common, by = c("feature" = "symbol")) %>%
+  pull(ensgene)
+
+seurat <- seurat %>% AddModuleScore(., 
+                                    features = list(common_sig),
+                                    name = "Common")
+seurat
+FeaturePlot(seurat, features = "Common1") +
+  scale_colour_gradientn(colours = rev(brewer.pal(n = 9, name = "RdBu")),  
+                         breaks=c(-0.2, 2.0), label = c("-0.2", "Maximum"))
+
+
+
